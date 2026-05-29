@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  graphite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - graphite-net
+
+  # Тестовые БД для проверки импорта (опционально)
+  postgres-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: graphite
+      POSTGRES_PASSWORD: graphite
+      POSTGRES_DB: testdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./test-data/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - graphite-net
+
+  mysql-test:
+    image: mariadb:11.4
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: graphite
+      MYSQL_PASSWORD: graphite
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./test-data/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - graphite-net
+
+  mssql-test:
+    image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "YourStrong@Passw0rd"
+      MSSQL_PID: Express
+    ports:
+      - "1434:1433"
+    networks:
+      - graphite-net
+
+networks:
+  graphite-net:
+    driver: bridge

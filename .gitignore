@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Package build outputs (explicit)
+packages/*/dist/
+packages/*/.next/
+packages/*/out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Docker
+docker-compose.override.yml
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Demo / local scripts
+screenshot-demo.js
+*-demo.js
+
+# Certificates
+*.pem
+*.key
+
+# Misc
+.cache/
+.eslintcache
+.stylelintcache
