@@ -1,4 +1,3 @@
-# Build stage for editor
 FROM node:20-alpine AS editor-builder
 WORKDIR /app
 RUN npm install -g pnpm
@@ -11,7 +10,6 @@ COPY packages/editor/ packages/editor/
 RUN pnpm --filter @graphite/core build
 RUN pnpm --filter @graphite/editor build
 
-# Server stage
 FROM node:20-alpine AS server
 WORKDIR /app
 RUN npm install -g pnpm
@@ -24,7 +22,6 @@ COPY packages/server/ packages/server/
 RUN pnpm --filter @graphite/core build
 RUN pnpm --filter @graphite/server build
 
-# Copy built editor static files
 COPY --from=editor-builder /app/packages/editor/dist packages/editor/dist
 
 EXPOSE 3001

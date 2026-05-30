@@ -19,16 +19,23 @@ export interface Table {
   note?: string;
 }
 
+export interface HybridType {
+  base: string;
+  args: (string | number)[];
+}
+
 export interface Column {
   id: string;
   name: string;
   type: string;
+  hybridType?: HybridType;
   nullable: boolean;
   defaultValue?: string;
   primaryKey: boolean;
   unique: boolean;
   autoIncrement: boolean;
   note?: string;
+  comment?: string;
 }
 
 export interface Index {

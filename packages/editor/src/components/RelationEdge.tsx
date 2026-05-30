@@ -5,6 +5,7 @@ import { EdgeProps, getBezierPath, EdgeLabelRenderer } from '@xyflow/react';
 interface RelationEdgeData extends Record<string, unknown> {
   relationType: 'one_to_one' | 'one_to_many' | 'many_to_many';
   onDelete: () => void;
+  onUpdate: (updates: Partial<{ type: 'one_to_one' | 'one_to_many' | 'many_to_many' }>) => void;
 }
 
 const RelationEdge = memo(({
@@ -28,10 +29,10 @@ const RelationEdge = memo(({
   });
 
   const edgeData = data as RelationEdgeData | undefined;
-  const { relationType, onDelete } = edgeData || {};
+  const { relationType, onDelete, onUpdate } = edgeData || {};
 
-  const getRelationSymbol = () => {
-    switch (relationType) {
+  const getRelationSymbol = (type: string | undefined) => {
+    switch (type) {
       case 'one_to_one':
         return '1:1';
       case 'one_to_many':
@@ -62,9 +63,19 @@ const RelationEdge = memo(({
             pointerEvents: 'all',
           }}
           className="nodrag nopan"
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-full shadow-sm border border-gray-200">
-            <span className="text-xs font-medium text-blue-600">{getRelationSymbol()}</span>
+            <select
+              value={relationType || 'one_to_many'}
+              onChange={(e) => onUpdate?.({ type: e.target.value as 'one_to_one' | 'one_to_many' | 'many_to_many' })}
+              className="text-xs font-medium text-blue-600 bg-transparent border-none outline-none cursor-pointer"
+              title="Change relation type"
+            >
+              <option value="one_to_one">1:1</option>
+              <option value="one_to_many">1:N</option>
+              <option value="many_to_many">N:M</option>
+            </select>
             <button
               onClick={onDelete}
               className="text-gray-400 hover:text-red-500 transition-colors"

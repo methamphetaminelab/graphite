@@ -12,7 +12,7 @@ interface ImportRequest {
     username?: string;
     password?: string;
     connectionString?: string;
-    filename?: string; // For SQLite
+    filename?: string; 
   }
 }
 
@@ -31,7 +31,6 @@ async function importPostgreSQL(connection: ImportRequest['connection']): Promis
   try {
     await client.connect();
 
-    // Get tables
     const tablesResult = await client.query(`
       SELECT 
         t.table_name,
@@ -49,7 +48,6 @@ async function importPostgreSQL(connection: ImportRequest['connection']): Promis
       const tableName = tableRow.table_name;
       const tableSchema = tableRow.table_schema;
 
-      // Get columns
       const columnsResult = await client.query(`
         SELECT 
           c.column_name,
@@ -86,7 +84,6 @@ async function importPostgreSQL(connection: ImportRequest['connection']): Promis
         autoIncrement: false,
       }));
 
-      // Get foreign keys
       const fkResult = await client.query(`
         SELECT
           kcu.column_name,
@@ -149,7 +146,7 @@ async function importMySQL(connection: ImportRequest['connection']): Promise<Sch
   });
 
   try {
-    // Get tables
+    
     const [tablesResult] = await conn.execute(
       `SELECT table_name FROM information_schema.tables 
        WHERE table_schema = ? AND table_type = 'BASE TABLE'`,
@@ -162,7 +159,6 @@ async function importMySQL(connection: ImportRequest['connection']): Promise<Sch
     for (const tableRow of tablesResult) {
       const tableName = tableRow.table_name;
 
-      // Get columns
       const [columnsResult] = await conn.execute(
         `SELECT 
           column_name, data_type, is_nullable, column_default,
@@ -185,7 +181,6 @@ async function importMySQL(connection: ImportRequest['connection']): Promise<Sch
         unique: false,
       }));
 
-      // Get foreign keys
       const [fkResult] = await conn.execute(
         `SELECT
           kcu.column_name,
@@ -236,7 +231,7 @@ async function importSQLite(connection: ImportRequest['connection']): Promise<Sc
   const db = new Database.default(connection.filename || ':memory:');
 
   try {
-    // Get tables
+    
     const tablesResult = db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
     ).all() as { name: string }[];
@@ -247,7 +242,6 @@ async function importSQLite(connection: ImportRequest['connection']): Promise<Sc
     for (const tableRow of tablesResult) {
       const tableName = tableRow.name;
 
-      // Get table info
       const columnsResult = db.prepare(`PRAGMA table_info("${tableName}")`).all() as any[];
 
       const columns: Column[] = columnsResult.map((col: any) => ({
@@ -261,7 +255,6 @@ async function importSQLite(connection: ImportRequest['connection']): Promise<Sc
         autoIncrement: false,
       }));
 
-      // Get foreign keys
       const fkResult = db.prepare(`PRAGMA foreign_key_list("${tableName}")`).all() as any[];
 
       for (const fk of fkResult) {
@@ -313,7 +306,7 @@ async function importMSSQL(connection: ImportRequest['connection']): Promise<Sch
   await pool.connect();
 
   try {
-    // Get tables
+    
     const tablesResult = await pool.request().query(
       `SELECT TABLE_NAME, TABLE_SCHEMA 
        FROM INFORMATION_SCHEMA.TABLES 
@@ -328,7 +321,6 @@ async function importMSSQL(connection: ImportRequest['connection']): Promise<Sch
       const tableName = tableRow.TABLE_NAME;
       const tableSchema = tableRow.TABLE_SCHEMA;
 
-      // Get columns
       const columnsResult = await pool.request()
         .input('tableName', (sql as any).NVarChar, tableName)
         .input('tableSchema', (sql as any).NVarChar, tableSchema)
@@ -362,7 +354,6 @@ async function importMSSQL(connection: ImportRequest['connection']): Promise<Sch
         autoIncrement: false,
       }));
 
-      // Get foreign keys
       const fkResult = await pool.request()
         .input('tableName', (sql as any).NVarChar, tableName)
         .query(`
@@ -422,7 +413,7 @@ async function importOracle(connection: ImportRequest['connection']): Promise<Sc
   });
 
   try {
-    // Get tables
+    
     const tablesResult = await conn.execute(
       `SELECT table_name FROM user_tables ORDER BY table_name`
     );
@@ -433,7 +424,6 @@ async function importOracle(connection: ImportRequest['connection']): Promise<Sc
     for (const tableRow of tablesResult.rows as any[]) {
       const tableName = tableRow[0];
 
-      // Get columns
       const columnsResult = await conn.execute(
         `SELECT 
           column_name, data_type, data_length, nullable, data_default
@@ -443,7 +433,6 @@ async function importOracle(connection: ImportRequest['connection']): Promise<Sc
         [tableName]
       );
 
-      // Get primary keys
       const pkResult = await conn.execute(
         `SELECT column_name 
          FROM user_cons_columns 
@@ -467,7 +456,6 @@ async function importOracle(connection: ImportRequest['connection']): Promise<Sc
         autoIncrement: false,
       }));
 
-      // Get foreign keys
       const fkResult = await conn.execute(
         `SELECT
           a.column_name,
@@ -514,7 +502,7 @@ async function importOracle(connection: ImportRequest['connection']): Promise<Sc
 }
 
 async function importMariaDB(connection: ImportRequest['connection']): Promise<SchemaWithRelations> {
-  // MariaDB uses the same protocol as MySQL
+  
   return importMySQL(connection);
 }
 

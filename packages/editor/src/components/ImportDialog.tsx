@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSchemaStore } from '@/store/schemaStore';
-import { parseDbml, deserializeSchema } from '@graphite/core';
+import { parseDbml, deserializeSchema, parseSQL } from '@graphite/core';
+import { computeLayout } from '../lib/layoutEngine';
 import { X, Upload, FileJson, FileCode, Database, AlertCircle, Check } from 'lucide-react';
 
 type ImportFormat = 'dbml' | 'json' | 'sql';
@@ -12,12 +13,22 @@ interface ImportDialogProps {
 }
 
 export default function ImportDialog({ onClose }: ImportDialogProps) {
-  const { setSchema } = useSchemaStore();
+  const { setSchema, focusTables } = useSchemaStore();
   const [format, setFormat] = useState<ImportFormat>('dbml');
   const [content, setContent] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -32,26 +43,77 @@ export default function ImportDialog({ onClose }: ImportDialogProps) {
     reader.readAsText(file);
   };
 
+  const assignPositions = (schema: any) => {
+    if (schema.tables.some((t: any) => !t.position)) {
+      const positions = computeLayout(schema.tables, schema.relations);
+      schema.tables = schema.tables.map((t: any) => ({
+        ...t,
+        position: positions.get(t.id) || { x: 0, y: 0 },
+      }));
+    }
+    return schema;
+  };
+
   const handleImport = () => {
     try {
       setError(null);
       
       switch (format) {
         case 'dbml': {
-          const schema = parseDbml(content);
+          
+          if (!content.trim() || !/Table\s+\w+\s*\{/.test(content)) {
+            throw new Error(
+              'Invalid DBML format. Expected DBML syntax like:\n\n' +
+              'Table users {\n' +
+              '  id int [pk]\n' +
+              '  name varchar\n' +
+              '}\n\n' +
+              'Note: SQL DDL files (CREATE TABLE) are not DBML. Use JSON format or connect to a live database instead.'
+            );
+          }
+          const schema = assignPositions(parseDbml(content));
           setSchema(schema);
+          if (schema.tables.length > 0) {
+            focusTables(schema.tables.map((t: any) => t.id));
+          }
           break;
         }
         case 'json': {
-          const data = JSON.parse(content);
-          const schema = deserializeSchema(data);
+          
+          const trimmed = content.trim();
+          if (!trimmed || (!trimmed.startsWith('{') && !trimmed.startsWith('['))) {
+            throw new Error(
+              'Invalid JSON format. Content must start with { or [.\n\n' +
+              'If you are importing a SQL dump file, please note that SQL DDL import is not yet supported. ' +
+              'Use DBML format or connect to a live database instead.'
+            );
+          }
+          
+          const schema = assignPositions(deserializeSchema(content));
           setSchema(schema);
+          if (schema.tables.length > 0) {
+            focusTables(schema.tables.map((t: any) => t.id));
+          }
           break;
         }
         case 'sql': {
-          // SQL import is deferred to v2
-          setError('SQL file import is not yet supported. Please use DBML or JSON format.');
-          return;
+          
+          if (!content.trim() || !/CREATE\s+TABLE/i.test(content)) {
+            throw new Error(
+              'Invalid SQL format. Expected SQL DDL with CREATE TABLE statements.\n\n' +
+              'Example:\n' +
+              'CREATE TABLE users (\n' +
+              '  id INT PRIMARY KEY,\n' +
+              '  name VARCHAR(255)\n' +
+              ');'
+            );
+          }
+          const schema = assignPositions(parseSQL(content));
+          setSchema(schema);
+          if (schema.tables.length > 0) {
+            focusTables(schema.tables.map((t: any) => t.id));
+          }
+          break;
         }
       }
 
@@ -72,9 +134,16 @@ export default function ImportDialog({ onClose }: ImportDialogProps) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-xl shadow-xl w-[700px] max-h-[80vh] flex flex-col">
-        {/* Header */}
+        
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Import Schema</h2>
           <button
@@ -85,7 +154,6 @@ export default function ImportDialog({ onClose }: ImportDialogProps) {
           </button>
         </div>
 
-        {/* Format Selection */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex gap-2">
             {formats.map((f) => (
@@ -108,7 +176,6 @@ export default function ImportDialog({ onClose }: ImportDialogProps) {
           </div>
         </div>
 
-        {/* Content Input */}
         <div className="flex-1 px-6 py-4 overflow-hidden flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-500">
@@ -142,7 +209,6 @@ export default function ImportDialog({ onClose }: ImportDialogProps) {
           />
         </div>
 
-        {/* Error/Success Messages */}
         {error && (
           <div className="px-6 py-3 bg-red-50 border-t border-red-200">
             <div className="flex items-center gap-2 text-sm text-red-700">
@@ -161,7 +227,6 @@ export default function ImportDialog({ onClose }: ImportDialogProps) {
           </div>
         )}
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-200">
           <button
             onClick={onClose}

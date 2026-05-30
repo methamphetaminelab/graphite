@@ -8,6 +8,7 @@ import VisualEditor from '@/components/VisualEditor';
 import DslEditor from '@/components/DslEditor';
 import TableEditDialog from '@/components/TableEditDialog';
 import ColumnEditDialog from '@/components/ColumnEditDialog';
+import { CanvasContextMenu } from '@/components/CanvasContextMenu';
 
 export default function Home() {
   const { viewMode } = useSchemaStore();
@@ -32,6 +33,14 @@ export default function Home() {
     setRelationStart({ tableId, columnId });
   }, []);
 
+  const handleDeleteRelation = useCallback((relationId: string) => {
+    useSchemaStore.getState().removeRelation(relationId);
+  }, []);
+
+  const handleUpdateRelation = useCallback((relationId: string, updates: Partial<{ type: 'one_to_one' | 'one_to_many' | 'many_to_many' }>) => {
+    useSchemaStore.getState().updateRelation(relationId, updates);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Toolbar />
@@ -50,9 +59,8 @@ export default function Home() {
               onEditColumn={handleEditColumn}
               onAddColumn={handleAddColumn}
               onStartRelation={handleStartRelation}
-              onDeleteRelation={(relationId) => {
-                useSchemaStore.getState().removeRelation(relationId);
-              }}
+              onDeleteRelation={handleDeleteRelation}
+              onUpdateRelation={handleUpdateRelation}
             />
           ) : (
             <DslEditor />
@@ -60,7 +68,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Dialogs */}
       {editingTableId && (
         <TableEditDialog
           tableId={editingTableId}
@@ -82,6 +89,8 @@ export default function Home() {
           onClose={() => setAddingColumnTableId(null)}
         />
       )}
+
+      <CanvasContextMenu />
     </div>
   );
 }

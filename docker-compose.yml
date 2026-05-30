@@ -20,7 +20,6 @@ services:
     networks:
       - graphite-net
 
-  # Тестовые БД для проверки импорта (опционально)
   postgres-test:
     image: postgres:17-alpine
     environment:

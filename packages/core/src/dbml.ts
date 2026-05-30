@@ -1,4 +1,18 @@
-import type { SchemaWithRelations, Table, Column, Enum, Relation } from './types.js';
+import type { SchemaWithRelations, Table, Column, Enum, Relation, HybridType } from './types.js';
+
+const HYBRID_TYPE_REGEX = /^(\w+)\(([^)]+)\)$/;
+
+function parseHybridType(typeStr: string): { type: string; hybridType?: HybridType } {
+  const match = typeStr.match(HYBRID_TYPE_REGEX);
+  if (!match) return { type: typeStr };
+  const base = match[1];
+  const args = match[2].split(',').map(s => {
+    const trimmed = s.trim();
+    const num = Number(trimmed);
+    return Number.isNaN(num) ? trimmed : num;
+  });
+  return { type: typeStr, hybridType: { base, args } };
+}
 
 export function generateDbml(schema: SchemaWithRelations): string {
   let dbml = '';
@@ -91,7 +105,7 @@ export function parseDbml(dbml: string): SchemaWithRelations {
       const match = line.match(/Table\s+(?:(\w+)\.)?(\w+)\s*\{/);
       if (match) {
         currentTable = {
-          id: generateId(),
+          id: `table-${match[1] ? match[1] + '.' : ''}${match[2]}`,
           name: match[2],
           schema: match[1],
           columns: [],
@@ -104,7 +118,7 @@ export function parseDbml(dbml: string): SchemaWithRelations {
       const match = line.match(/Enum\s+(\w+)\s*\{/);
       if (match) {
         currentEnum = {
-          id: generateId(),
+          id: `enum-${match[1]}`,
           name: match[1],
           values: [],
         };
@@ -122,11 +136,11 @@ export function parseDbml(dbml: string): SchemaWithRelations {
         const noteMatch = line.match(/Note:\s*['"](.+?)['"]$/);
         if (noteMatch) currentTable.note = noteMatch[1];
       } else if (line.startsWith('Index ')) {
-        // Parse index
+        
         const idxMatch = line.match(/Index\s+(\w+)?\s*\[(\w+)\](?:\s*\[unique\])?\s*\(([^)]+)\)/);
         if (idxMatch) {
           currentTable.indexes.push({
-            id: generateId(),
+            id: `idx-${currentTable.name}-${idxMatch[1] || currentTable.indexes.length}`,
             name: idxMatch[1] || `idx_${currentTable.indexes.length}`,
             type: idxMatch[2] as any,
             unique: line.includes('[unique]'),
@@ -134,13 +148,15 @@ export function parseDbml(dbml: string): SchemaWithRelations {
           });
         }
       } else {
-        // Parse column
+        
         const colMatch = line.match(/^(\w+)\s+(\S+)(.*)$/);
         if (colMatch) {
+          const { type, hybridType } = parseHybridType(colMatch[2]);
           const column: Column = {
-            id: generateId(),
+            id: `col-${currentTable.name}-${colMatch[1]}`,
             name: colMatch[1],
-            type: colMatch[2],
+            type,
+            hybridType,
             nullable: true,
             primaryKey: false,
             unique: false,
@@ -176,7 +192,7 @@ export function parseDbml(dbml: string): SchemaWithRelations {
           
           if (sourceColumn && targetColumn) {
             const relation: Relation = {
-              id: generateId(),
+              id: `rel-${sourceTable.name}-${sourceColumn.name}-${targetTable.name}-${targetColumn.name}`,
               sourceTableId: sourceTable.id,
               sourceColumnId: sourceColumn.id,
               targetTableId: targetTable.id,
@@ -200,6 +216,3 @@ export function parseDbml(dbml: string): SchemaWithRelations {
   return schema;
 }
 
-function generateId(): string {
-  return 'id_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36);
-}

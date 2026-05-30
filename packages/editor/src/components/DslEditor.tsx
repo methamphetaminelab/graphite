@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSchemaStore } from '@/store/schemaStore';
 import { generateDbml, parseDbml } from '@graphite/core';
 import { AlertCircle, Check } from 'lucide-react';
@@ -10,11 +10,12 @@ export default function DslEditor() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isValid, setIsValid] = useState(true);
+  const generatedCodeRef = useRef('');
 
-  // Generate DBML from schema
   useEffect(() => {
     try {
       const dbmlCode = generateDbml(schema);
+      generatedCodeRef.current = dbmlCode;
       setCode(dbmlCode);
       setError(null);
       setIsValid(true);
@@ -24,12 +25,13 @@ export default function DslEditor() {
     }
   }, [schema]);
 
-  // Debounced parse DBML to schema
   useEffect(() => {
+    if (code === generatedCodeRef.current) return;
+
     const timeout = setTimeout(() => {
       try {
         const newSchema = parseDbml(code);
-        // Preserve positions from current schema
+        
         const mergedSchema = {
           ...newSchema,
           tables: newSchema.tables.map((table) => {
@@ -47,7 +49,7 @@ export default function DslEditor() {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [code, setSchema, schema.tables]);
+  }, [code, setSchema]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCode(e.target.value);

@@ -31,6 +31,8 @@ export function schemaToJson(schema: SchemaWithRelations): unknown {
         id: col.id,
         name: col.name,
         type: col.type,
+        hybridType: col.hybridType,
+        comment: col.comment,
         nullable: col.nullable,
         defaultValue: col.defaultValue,
         primaryKey: col.primaryKey,

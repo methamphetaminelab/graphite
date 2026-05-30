@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSchemaStore } from '@/store/schemaStore';
 import { Column, DatabaseDialect } from '@graphite/core';
 import { X } from 'lucide-react';
@@ -24,6 +24,8 @@ export default function ColumnEditDialog({ tableId, columnId, onClose }: ColumnE
   const [autoIncrement, setAutoIncrement] = useState(false);
   const [defaultValue, setDefaultValue] = useState('');
   const [note, setNote] = useState('');
+  const [hybridBase, setHybridBase] = useState('');
+  const [hybridArgs, setHybridArgs] = useState<string[]>([]);
 
   useEffect(() => {
     if (existingColumn) {
@@ -35,8 +37,10 @@ export default function ColumnEditDialog({ tableId, columnId, onClose }: ColumnE
       setAutoIncrement(existingColumn.autoIncrement || false);
       setDefaultValue(existingColumn.defaultValue || '');
       setNote(existingColumn.note || '');
+      setHybridBase(existingColumn.hybridType?.base || '');
+      setHybridArgs(existingColumn.hybridType?.args.map(String) || []);
     } else {
-      // Default values for new column
+      
       setName('');
       setType('');
       setPrimaryKey(false);
@@ -45,15 +49,38 @@ export default function ColumnEditDialog({ tableId, columnId, onClose }: ColumnE
       setAutoIncrement(false);
       setDefaultValue('');
       setNote('');
+      setHybridBase('');
+      setHybridArgs([]);
     }
   }, [existingColumn]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   if (!table) return null;
 
   const handleSave = () => {
+    const hybridType = hybridBase && hybridArgs.length > 0
+      ? {
+          base: hybridBase,
+          args: hybridArgs.map((a) => {
+            const num = Number(a);
+            return Number.isNaN(num) ? a : num;
+          }),
+        }
+      : undefined;
+
     const columnData: Partial<Column> = {
       name,
       type,
+      hybridType,
       primaryKey,
       unique,
       nullable,
@@ -87,9 +114,16 @@ export default function ColumnEditDialog({ tableId, columnId, onClose }: ColumnE
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-xl shadow-xl w-[500px] max-h-[80vh] flex flex-col">
-        {/* Header */}
+        
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">
             {existingColumn ? 'Edit Column' : 'Add Column'}
@@ -102,7 +136,6 @@ export default function ColumnEditDialog({ tableId, columnId, onClose }: ColumnE
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 px-6 py-4 overflow-y-auto space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Column Name</label>
@@ -117,22 +150,83 @@ export default function ColumnEditDialog({ tableId, columnId, onClose }: ColumnE
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Data Type</label>
-            <input
-              type="text"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              list="type-suggestions"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g., varchar(255)"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={type}
+                onChange={(e) => {
+                  setType(e.target.value);
+                  setHybridBase('');
+                  setHybridArgs([]);
+                }}
+                list="type-suggestions"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., varchar(255)"
+              />
+              <button
+                onClick={() => {
+                  if (type) {
+                    setHybridBase(type);
+                    setHybridArgs(['']);
+                  }
+                }}
+                disabled={!type || hybridBase === type}
+                className="px-3 py-2 text-sm bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                Set as Hybrid
+              </button>
+            </div>
             <datalist id="type-suggestions">
               {getTypeSuggestions().map((t) => (
                 <option key={t} value={t} />
               ))}
             </datalist>
+            {hybridBase && (
+              <p className="text-xs text-gray-500 mt-1">
+                Hybrid type: {hybridBase}({hybridArgs.join(', ')})
+              </p>
+            )}
           </div>
 
-          {/* Constraints */}
+          {hybridBase && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Parameters</label>
+              {hybridArgs.map((arg, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={arg}
+                    onChange={(e) => {
+                      const newArgs = [...hybridArgs];
+                      newArgs[index] = e.target.value;
+                      setHybridArgs(newArgs);
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 255"
+                  />
+                  <button
+                    onClick={() => {
+                      const newArgs = hybridArgs.filter((_, i) => i !== index);
+                      setHybridArgs(newArgs);
+                      if (newArgs.length === 0) {
+                        setHybridBase('');
+                      }
+                    }}
+                    className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setHybridArgs([...hybridArgs, ''])}
+                className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                + Add Parameter
+              </button>
+            </div>
+          )}
+
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">Constraints</label>
             
@@ -201,7 +295,6 @@ export default function ColumnEditDialog({ tableId, columnId, onClose }: ColumnE
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-200">
           <button
             onClick={onClose}

@@ -1,4 +1,5 @@
 import type { SchemaWithRelations, Table } from '../types.js';
+import { renderColumnType } from './utils.js';
 
 export function generateSQLite(schema: SchemaWithRelations): string {
   let sql = `-- Generated SQLite DDL\n\n`;
@@ -19,7 +20,7 @@ function generateTable(table: Table, schema: SchemaWithRelations): string {
   
   const lines: string[] = [];
   for (const column of table.columns) {
-    let line = `  "${column.name}" ${column.type}`;
+    let line = `  "${column.name}" ${renderColumnType(column)}`;
     if (!column.nullable) line += ' NOT NULL';
     if (column.defaultValue !== undefined) line += ` DEFAULT ${column.defaultValue}`;
     if (column.primaryKey) line += ' PRIMARY KEY';

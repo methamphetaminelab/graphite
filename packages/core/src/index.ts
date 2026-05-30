@@ -2,6 +2,7 @@ export * from './types.js';
 export * from './validation.js';
 export * from './serialization.js';
 export * from './dbml.js';
+export * from './sql-parser.js';
 export { createEnum } from './types.js';
 
 export { generatePostgreSQL } from './sql-generators/postgresql.js';

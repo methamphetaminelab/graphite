@@ -4,10 +4,11 @@ import React, { memo, useState, useCallback } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Table, Column } from '@graphite/core';
 import { useSchemaStore } from '@/store/schemaStore';
-import { Pencil, Trash2, Plus, Key, Link2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Key } from 'lucide-react';
 
 interface TableNodeData extends Record<string, unknown> {
   table: Table;
+  isSelected?: boolean;
   onEdit: (tableId: string) => void;
   onDelete: (tableId: string) => void;
   onAddColumn: (tableId: string) => void;
@@ -16,25 +17,56 @@ interface TableNodeData extends Record<string, unknown> {
   onStartRelation: (tableId: string, columnId: string) => void;
 }
 
-const TableNode = memo(({ data, selected }: NodeProps) => {
+const TableNode = memo(({ data, selected, id }: NodeProps) => {
   const nodeData = data as TableNodeData;
-  const { table, onEdit, onDelete, onAddColumn, onEditColumn, onDeleteColumn, onStartRelation } = nodeData;
-  const [isExpanded, setIsExpanded] = useState(true);
+  const { table, isSelected, onEdit, onDelete, onAddColumn, onEditColumn, onDeleteColumn, onStartRelation } = nodeData;
   const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
+  const { toggleNode, selectNode, collapsedTableIds, toggleTableCollapse } = useSchemaStore();
+  const isExpanded = !collapsedTableIds.includes(table.id);
 
-  const handleEdit = useCallback(() => onEdit(table.id), [onEdit, table.id]);
-  const handleDelete = useCallback(() => onDelete(table.id), [onDelete, table.id]);
-  const handleAddColumn = useCallback(() => onAddColumn(table.id), [onAddColumn, table.id]);
+  const handleEdit = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(table.id);
+  }, [onEdit, table.id]);
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(table.id);
+  }, [onDelete, table.id]);
+  const handleAddColumn = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddColumn(table.id);
+  }, [onAddColumn, table.id]);
+
+  const handleNodeClick = useCallback((e: React.MouseEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.stopPropagation();
+      toggleNode(id);
+    }
+  }, [id, toggleNode]);
 
   return (
-    <div className={`bg-white border-2 rounded-lg shadow-lg min-w-[240px] transition-all ${
-      selected ? 'border-blue-500 shadow-blue-200' : 'border-gray-200'
-    }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+    <div 
+      onClick={handleNodeClick}
+      className={`
+      bg-white border-2 rounded-lg shadow-lg min-w-[240px] transition-all
+      ${isSelected || selected ? 'ring-2 ring-blue-500 border-blue-500 shadow-blue-200' : table.color ? '' : 'border-gray-200'}
+    `}
+      style={!isSelected && !selected && table.color ? { borderColor: table.color } : undefined}>
+      
+      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200 rounded-t-lg relative">
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="header-target"
+          className="!w-2 !h-2 !bg-blue-500 !border-2 !border-white"
+          style={{ top: '50%', left: '-6px' }}
+        />
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTableCollapse(table.id);
+            }}
             className="text-gray-500 hover:text-gray-700 transition-colors"
           >
             <svg
@@ -67,9 +99,15 @@ const TableNode = memo(({ data, selected }: NodeProps) => {
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="header-source"
+          className="!w-2 !h-2 !bg-blue-500 !border-2 !border-white"
+          style={{ top: '50%', right: '-6px' }}
+        />
       </div>
 
-      {/* Columns */}
       {isExpanded && (
         <div className="py-1">
           {table.columns.map((column: Column) => (
@@ -96,21 +134,20 @@ const TableNode = memo(({ data, selected }: NodeProps) => {
               {hoveredColumn === column.id && (
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
-                    onClick={() => onStartRelation(table.id, column.id)}
-                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                    title="Create relation"
-                  >
-                    <Link2 className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => onEditColumn(table.id, column.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditColumn(table.id, column.id);
+                    }}
                     className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                     title="Edit column"
                   >
                     <Pencil className="w-3 h-3" />
                   </button>
                   <button
-                    onClick={() => onDeleteColumn(table.id, column.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteColumn(table.id, column.id);
+                    }}
                     className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                     title="Delete column"
                   >
@@ -119,7 +156,6 @@ const TableNode = memo(({ data, selected }: NodeProps) => {
                 </div>
               )}
 
-              {/* Handles for relations */}
               <Handle
                 type="target"
                 position={Position.Left}
@@ -136,10 +172,12 @@ const TableNode = memo(({ data, selected }: NodeProps) => {
               />
             </div>
           ))}
-          
-          {/* Add column button */}
+
           <button
-            onClick={handleAddColumn}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddColumn(e);
+            }}
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 hover:text-blue-600 hover:bg-blue-50 w-full transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />

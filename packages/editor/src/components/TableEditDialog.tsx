@@ -31,6 +31,16 @@ export default function TableEditDialog({ tableId, onClose }: TableEditDialogPro
     }
   }, [table]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!table) return null;
 
   const handleSave = () => {
@@ -62,9 +72,16 @@ export default function TableEditDialog({ tableId, onClose }: TableEditDialogPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-xl shadow-xl w-[600px] max-h-[80vh] flex flex-col">
-        {/* Header */}
+        
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Edit Table</h2>
           <button
@@ -75,7 +92,6 @@ export default function TableEditDialog({ tableId, onClose }: TableEditDialogPro
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 px-6 py-4 overflow-y-auto space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Table Name</label>
@@ -109,7 +125,6 @@ export default function TableEditDialog({ tableId, onClose }: TableEditDialogPro
             />
           </div>
 
-          {/* Indexes */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">Indexes</label>
@@ -158,7 +173,6 @@ export default function TableEditDialog({ tableId, onClose }: TableEditDialogPro
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-200">
           <button
             onClick={onClose}

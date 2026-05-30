@@ -1,4 +1,5 @@
-import type { SchemaWithRelations, Table, Column } from '../types.js';
+import type { SchemaWithRelations, Table } from '../types.js';
+import { renderColumnType } from './utils.js';
 
 export function generatePostgreSQL(schema: SchemaWithRelations): string {
   let sql = `-- Generated PostgreSQL DDL\n\n`;
@@ -25,7 +26,7 @@ function generateTable(table: Table, schema: SchemaWithRelations): string {
   
   const lines: string[] = [];
   for (const column of table.columns) {
-    lines.push(`  "${column.name}" ${column.type}${column.nullable ? '' : ' NOT NULL'}${column.defaultValue !== undefined ? ` DEFAULT ${column.defaultValue}` : ''}${column.primaryKey ? ' PRIMARY KEY' : ''}${column.unique && !column.primaryKey ? ' UNIQUE' : ''}`);
+    lines.push(`  "${column.name}" ${renderColumnType(column)}${column.nullable ? '' : ' NOT NULL'}${column.defaultValue !== undefined ? ` DEFAULT ${column.defaultValue}` : ''}${column.primaryKey ? ' PRIMARY KEY' : ''}${column.unique && !column.primaryKey ? ' UNIQUE' : ''}`);
   }
   
   sql += lines.join(',\n');

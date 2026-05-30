@@ -34,6 +34,17 @@ yarn-error.log*
 *.swo
 *~
 
+# AI / Coding assistants
+.serena/
+.opencode/
+.claude/
+.cursor/
+.aider*
+.continue/
+.codeium/
+.supermaven/
+.ai/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -60,6 +71,13 @@ temp/
 # Demo / local scripts
 screenshot-demo.js
 *-demo.js
+realtime-demo-fast.js
+
+# Temporary files
+json.json
+
+# Temporary documentation / plans
+docs/
 
 # Certificates
 *.pem

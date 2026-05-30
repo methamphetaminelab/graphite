@@ -42,17 +42,17 @@ export default function Sidebar({ onEditTable, onEditColumn, onAddColumn }: Side
 
   const handleAddTable = () => {
     addTable('new_table');
-    // Position will be set by the visual editor or defaults
+    
   };
 
   const handleAddEnum = () => {
-    // Enum support not yet implemented in store
+    
     alert('Enum support coming soon!');
   };
 
   return (
     <div className="w-72 bg-white border-r border-gray-200 flex flex-col h-full">
-      {/* Database Settings */}
+      
       <div className="px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-2 mb-2">
           <Database className="w-4 h-4 text-gray-500" />
@@ -72,7 +72,6 @@ export default function Sidebar({ onEditTable, onEditColumn, onAddColumn }: Side
         </select>
       </div>
 
-      {/* Tables */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-2 flex items-center justify-between">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tables</span>
@@ -143,7 +142,6 @@ export default function Sidebar({ onEditTable, onEditColumn, onAddColumn }: Side
           ))}
         </div>
 
-        {/* Enums */}
         {schema.enums.length > 0 && (
           <>
             <div className="px-4 py-2 flex items-center justify-between mt-4">
@@ -172,7 +170,7 @@ export default function Sidebar({ onEditTable, onEditColumn, onAddColumn }: Side
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Enum deletion not yet implemented
+                        
                       }}
                       className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-opacity"
                     >
@@ -196,7 +194,6 @@ export default function Sidebar({ onEditTable, onEditColumn, onAddColumn }: Side
         )}
       </div>
 
-      {/* Schema Info */}
       <div className="px-4 py-3 border-t border-gray-200">
         <div className="text-xs text-gray-500 space-y-1">
           <div className="flex justify-between">

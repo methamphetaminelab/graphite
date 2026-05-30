@@ -10,6 +10,12 @@ Self-hosted web application for database architecture design — an open-source 
 - **Multi-Database Support**: PostgreSQL, MySQL, SQLite, MSSQL, Oracle, MariaDB
 - **Import from Database**: Connect to existing databases and import their schema
 - **Export Formats**: SQL DDL, DBML, JSON, PNG, SVG, PDF
+- **Auto-Layout**: Automatic layered graph layout for clean diagram organization
+- **Multi-Select & Box Selection**: Select multiple tables via box selection or Ctrl+click
+- **Copy & Paste**: Duplicate tables with Ctrl+C / Ctrl+V, including context menu support
+- **Canvas Context Menu**: Right-click on canvas for quick actions — duplicate, delete, change color, select by color
+- **Schema Verification**: Real-time validation — detects missing primary keys, orphaned tables, and relation cycles
+- **Keyboard Shortcuts**: Ctrl+A (select all), Ctrl+C/V (copy/paste), Delete (remove), Escape (deselect)
 - **Zero Authentication**: No login required — open access, deploy anywhere
 - **Self-Hosted**: Single Docker image with everything included
 
@@ -17,8 +23,12 @@ Self-hosted web application for database architecture design — an open-source 
 
 - **Frontend**: Next.js 14 + React + TypeScript + Tailwind CSS + @xyflow/react
 - **State Management**: Zustand
+- **DSL Editor**: CodeMirror 6 with SQL syntax highlighting
+- **UI Primitives**: Radix UI (dialog, dropdown, tabs, tooltip)
+- **Export**: html-to-image (PNG/SVG), jsPDF (PDF)
 - **Backend**: Node.js + Express (import API only)
 - **Monorepo**: pnpm workspaces
+- **Testing**: Playwright
 
 ## Quick Start
 
@@ -44,12 +54,22 @@ pnpm build
 pnpm dev
 ```
 
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl + A` | Select all tables |
+| `Ctrl + C` | Copy selected tables |
+| `Ctrl + V` | Paste tables |
+| `Delete` | Remove selected tables |
+| `Escape` | Deselect all / close dialogs |
+
 ## Project Structure
 
 ```
 packages/
-  core/      # Pure TypeScript — types, validation, serialization, SQL generators, DBML parser
-  editor/    # Next.js app — visual editor, DSL editor, UI components
+  core/      # Pure TypeScript — types, validation, serialization, SQL generators, DBML parser, SQL parser
+  editor/    # Next.js app — visual editor, DSL editor, UI components, export dialogs
   server/    # Express server — database import API + static file serving
 ```
 
@@ -84,7 +104,8 @@ Supported dialects: `postgresql`, `mysql`, `sqlite`, `mssql`, `oracle`, `mariadb
 - **SQL DDL**: Generate CREATE TABLE statements for any supported database
 - **DBML**: Database Markup Language for text-based schema definition
 - **JSON**: Machine-readable schema representation
-- **PNG/SVG/PDF**: Visual diagram exports (via browser)
+- **PNG/SVG**: Visual diagram exports via browser rendering
+- **PDF**: Printable diagram export
 
 ## License
 
